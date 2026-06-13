@@ -1,0 +1,131 @@
+include "test"
+| include "ndjson"
+|
+
+# -- ndjson_parse Tests --
+
+def test_parse_single_object():
+  let result = ndjson_parse("{\"a\":1}")
+  | assert_len(result, 1)
+  | assert_eq(result[0]["a"], 1)
+end
+
+def test_parse_multiple_objects():
+  let result = ndjson_parse("{\"id\":1}\n{\"id\":2}\n{\"id\":3}")
+  | assert_len(result, 3)
+  | assert_eq(result[0]["id"], 1)
+  | assert_eq(result[1]["id"], 2)
+  | assert_eq(result[2]["id"], 3)
+end
+
+def test_parse_mixed_types():
+  let result = ndjson_parse("1\n\"hello\"\ntrue\nnull\n[1,2]")
+  | assert_len(result, 5)
+  | assert_eq(result[0], 1)
+  | assert_eq(result[1], "hello")
+  | assert_eq(result[2], true)
+  | assert_none(result[3])
+  | assert_eq(result[4], [1, 2])
+end
+
+def test_parse_ignores_empty_lines():
+  let result = ndjson_parse("{\"a\":1}\n\n{\"b\":2}\n\n")
+  | assert_len(result, 2)
+end
+
+def test_parse_ignores_whitespace_lines():
+  let result = ndjson_parse("{\"a\":1}\n   \n{\"b\":2}")
+  | assert_len(result, 2)
+end
+
+def test_parse_nested_object():
+  let result = ndjson_parse("{\"user\":{\"name\":\"alice\",\"age\":30}}")
+  | assert_eq(result[0]["user"]["name"], "alice")
+  | assert_eq(result[0]["user"]["age"], 30)
+end
+
+def test_parse_array_values():
+  let result = ndjson_parse("[1,2,3]\n[4,5,6]")
+  | assert_len(result, 2)
+  | assert_eq(result[0], [1, 2, 3])
+  | assert_eq(result[1], [4, 5, 6])
+end
+
+# -- ndjson_parse_line Tests --
+
+def test_parse_line_number():
+  let result = ndjson_parse_line("42")
+  | assert_eq(result, 42)
+end
+
+def test_parse_line_object():
+  let result = ndjson_parse_line("{\"k\":\"v\"}")
+  | assert_eq(result["k"], "v")
+end
+
+def test_parse_line_trims_whitespace():
+  let result = ndjson_parse_line("  {\"x\":1}  ")
+  | assert_eq(result["x"], 1)
+end
+
+# -- ndjson_stringify Tests --
+
+def test_stringify_strings():
+  let result = ndjson_stringify(["hello", "world"])
+  | assert_eq(result, "\"hello\"\n\"world\"")
+end
+
+def test_stringify_numbers():
+  let result = ndjson_stringify([1, 2.5, -3])
+  | assert_eq(result, "1\n2.5\n-3")
+end
+
+def test_stringify_booleans():
+  let result = ndjson_stringify([true, false])
+  | assert_eq(result, "true\nfalse")
+end
+
+def test_stringify_null():
+  let result = ndjson_stringify([None])
+  | assert_eq(result, "null")
+end
+
+def test_stringify_object():
+  let result = ndjson_stringify([{"a": 1, "b": "x"}])
+  | assert_true(contains(result, "\"a\":1"))
+  | assert_true(contains(result, "\"b\":\"x\""))
+end
+
+def test_stringify_single_value_wraps_in_array():
+  let result = ndjson_stringify({"id": 1})
+  | assert_true(contains(result, "\"id\":1"))
+end
+
+def test_stringify_escapes_special_chars():
+  let result = ndjson_stringify(["a\"b\nc"])
+  | assert_eq(result, "\"a\\\"b\\nc\"")
+end
+
+# -- Round-trip Tests --
+
+def test_roundtrip_objects():
+  let input = "{\"id\":1,\"name\":\"alice\"}\n{\"id\":2,\"name\":\"bob\"}"
+  | let data = ndjson_parse(input)
+  | let out = ndjson_stringify(data)
+  | let back = ndjson_parse(out)
+  | assert_len(back, 2)
+  | assert_eq(back[0]["id"], 1)
+  | assert_eq(back[1]["name"], "bob")
+end
+
+def test_roundtrip_mixed():
+  let data = [1, "hello", true, None, [1, 2]]
+  | let out = ndjson_stringify(data)
+  | let back = ndjson_parse(out)
+  | assert_len(back, 5)
+  | assert_eq(back[0], 1)
+  | assert_eq(back[1], "hello")
+  | assert_eq(back[2], true)
+  | assert_none(back[3])
+  | assert_eq(back[4], [1, 2])
+end

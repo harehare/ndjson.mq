@@ -1,0 +1,48 @@
+# NDJSON (Newline Delimited JSON / JSON Lines) Implementation in mq
+# https://ndjson.org/
+
+def _nd_escape(s):
+  replace(replace(replace(replace(replace(replace(s,
+    "\\", "\\\\"),
+    "\"", "\\\""),
+    "\n", "\\n"),
+    "\r", "\\r"),
+    "\t", "\\t"),
+    implode([8]), "\\b")
+end
+
+def _nd_js(v):
+  if (is_string(v)):
+    "\"" + _nd_escape(v) + "\""
+  elif (is_number(v)):
+    to_string(v)
+  elif (is_bool(v)):
+    if (v): "true" else: "false"
+  elif (is_none(v)):
+    "null"
+  elif (is_array(v)):
+    "[" + join(map(v, _nd_js), ",") + "]"
+  elif (is_dict(v)):
+    "{" + join(map(entries(v), fn(e): _nd_js(e[0]) + ":" + _nd_js(e[1]);), ",") + "}"
+  else:
+    to_string(v)
+end
+
+# Parses a single NDJSON line into a value.
+def ndjson_parse_line(line):
+  _json_parse(trim(line))
+end
+
+# Parses an NDJSON string and returns an array of values.
+# Empty lines and lines containing only whitespace are ignored.
+def ndjson_parse(input):
+  let nonempty = filter(lines(to_string(input)), fn(l): !is_empty(trim(l));)
+  | map(nonempty, fn(l): _json_parse(trim(l));)
+end
+
+# Serializes an array of values to an NDJSON string.
+# If a single (non-array) value is given it is wrapped in an array first.
+def ndjson_stringify(data):
+  let arr = if (is_array(data)): data else: [data]
+  | join(map(arr, _nd_js), "\n")
+end
