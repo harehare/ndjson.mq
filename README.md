@@ -27,16 +27,16 @@ mq -L /path/to/ndjson.mq 'import "ndjson" | ...' file.ndjson
 
 ### HTTP Import (no local installation needed)
 
-If `mq` was built with the `http-import` feature, you can import directly from GitHub without any local setup:
+If `mq` was built with the `http-import` feature, you can import directly from GitHub without any local setup. This requires the `--allow-http-import` flag, which is disabled by default:
 
 ```sh
-mq -I raw 'import "github.com/harehare/ndjson.mq" | ndjson::ndjson_parse(.) | map(fn(x): x["id"];)' events.ndjson
+mq --allow-http-import -I raw 'import "github.com/harehare/ndjson.mq" | ndjson::ndjson_parse(.) | map(fn(x): x["id"];)' events.ndjson
 ```
 
 Pin to a specific release with `@vX.Y.Z`:
 
 ```sh
-mq -I raw 'import "github.com/harehare/ndjson.mq@v1.0.0" | ndjson::ndjson_parse(.)' events.ndjson
+mq --allow-http-import -I raw 'import "github.com/harehare/ndjson.mq@v1.0.0" | ndjson::ndjson_parse(.)' events.ndjson
 ```
 
 ## Usage
